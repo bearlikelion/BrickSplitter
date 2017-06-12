@@ -6,16 +6,53 @@ main.cpp
 @created  6/9/2017 7:28 AM
 */
 
+#include <SFML/Graphics.hpp>
+#include <iostream> 
 #include <chrono>
 
-#include "Common.h"
-#include "Ball.h"
+using namespace std;
+using namespace sf;
+
+using FrameTime = float;
 
 constexpr unsigned int WINDOW_WIDTH{ 800 }, WINDOW_HEIGHT{ 600 };
+constexpr float ballRadius{ 10.0f }, ballVelocity{ 0.5f };
 constexpr float paddleWidth{ 60.0f }, paddleHeight{ 20.0f }, paddleVelocity{ 0.6f };
 constexpr int countBlocksX{ 11 }, countBlocksY{ 4 };
 constexpr float ftStep{ 1.0f }, ftSlice{ 1.0f };
- 
+
+// Structures
+// structure == public class, used for data sets
+struct Ball
+{
+    CircleShape shape;
+    Vector2f velocity{ -ballVelocity, -ballVelocity };
+
+    Ball(float X, float Y) {
+        shape.setPosition(X, Y);
+        shape.setRadius(ballRadius);
+        shape.setFillColor(Color::Red);
+        shape.setOrigin(ballRadius, ballRadius);
+    }
+
+    void update(FrameTime mFT) {
+        shape.move(velocity * mFT);
+
+        if (left() < 0) velocity.x = ballVelocity;
+        else if (right() > WINDOW_WIDTH) velocity.x = -ballVelocity;
+
+        if (top() < 0) velocity.y = ballVelocity;
+        else if (bottom() > WINDOW_HEIGHT) velocity.y = -ballVelocity;
+    }
+
+    float x() const noexcept { return shape.getPosition().x; }
+    float y() const noexcept { return shape.getPosition().y; }
+    float left() const noexcept { return x() - shape.getRadius(); }
+    float right() const noexcept { return x() + shape.getRadius(); }
+    float top() const noexcept { return y() - shape.getRadius(); }
+    float bottom() const noexcept { return y() + shape.getRadius(); }
+};
+
 struct Rectangle {
     RectangleShape shape;
 
@@ -84,12 +121,12 @@ bool isIntersecting(T1& mA, T2& mB) {
 }
 
 void testCollision(Paddle& mPaddle, Ball& mBall) {
-    if (!isIntersecting(mPaddle, mBall)) return;     
+    if (!isIntersecting(mPaddle, mBall)) return;
 
-    mBall.velocity.y = -mBall.ballVelocity;;
+    mBall.velocity.y = -ballVelocity;
 
-    if (mBall.x() < mPaddle.x()) mBall.velocity.x = -mBall.ballVelocity;    
-    else mBall.velocity.x = mBall.ballVelocity;
+    if (mBall.x() < mPaddle.x()) mBall.velocity.x = -ballVelocity;
+    else mBall.velocity.x = ballVelocity;
 }
 
 void testCollision(Brick& mBrick, Ball& mBall) {
@@ -108,9 +145,9 @@ void testCollision(Brick& mBrick, Ball& mBall) {
     float minOverlapX{ ballFromLeft ? overlapLeft : overlapRight };
     float minOverlapY{ ballFromTop ? overlapTop : overlapBottom };
 
-    if (abs(minOverlapX) < abs(minOverlapY)) mBall.velocity.x = ballFromLeft ? -mBall.ballVelocity : mBall.ballVelocity;
-    else mBall.velocity.y = ballFromTop ? -mBall.ballVelocity : mBall.ballVelocity;
-}    
+    if (abs(minOverlapX) < abs(minOverlapY)) mBall.velocity.x = ballFromLeft ? -ballVelocity : ballVelocity;
+    else mBall.velocity.y = ballFromTop ? -ballVelocity : ballVelocity;
+}
 
 struct Game
 {
@@ -119,10 +156,10 @@ struct Game
     FrameTime lastFt{ 0.f }, currentSlice{ 0.f };
     bool running{ false };
 
-    // Define entities               
-    Ball * ball = new Ball(WINDOW_WIDTH / 2, WINDOW_HEIGHT - 75);
+    // Define entities
+    Ball ball{ WINDOW_WIDTH / 2, WINDOW_HEIGHT - 75 };
     Paddle paddle{ WINDOW_WIDTH / 2, WINDOW_HEIGHT - 50 };
-    vector<Brick> bricks;        
+    vector<Brick> bricks;
 
     // Construct game
     Game()
@@ -153,7 +190,7 @@ struct Game
             auto timePoint1(chrono::high_resolution_clock::now());
             window.clear(Color::White); // "Clear" the window from the previous frame
 
-            // Game phases
+                                        // Game phases
             inputPhase();
             updatePhase();
             drawPhase();
@@ -193,11 +230,11 @@ struct Game
         currentSlice += lastFt;
 
         for (; currentSlice >= ftSlice; currentSlice -= ftSlice) {
-            ball->update(ftStep);            
+            ball.update(ftStep);
             paddle.update(ftStep);
-            testCollision(paddle, *ball);
+            testCollision(paddle, ball);
 
-            for (auto& brick : bricks) testCollision(brick, *ball);
+            for (auto& brick : bricks) testCollision(brick, ball);
             bricks.erase(remove_if(begin(bricks), end(bricks), [](const Brick& mBrick) {
                 return mBrick.destroyed;
             }), end(bricks));
@@ -205,8 +242,8 @@ struct Game
     }
 
     void drawPhase()
-    {                    
-        window.draw(ball->shape);
+    {
+        window.draw(ball.shape);
         window.draw(paddle.shape);
         for (auto& brick : bricks) window.draw(brick.shape);
         window.display();
@@ -215,6 +252,8 @@ struct Game
 
 int main() {
     cout << "Initialize";
+
     Game{}.run();
+
     return 0;
 }
