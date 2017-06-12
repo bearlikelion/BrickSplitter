@@ -165,9 +165,7 @@ struct Game
     Game()
     {
         ContextSettings settings;
-        settings.antialiasingLevel = 8;
-        settings.majorVersion = 0;
-        settings.minorVersion = 1;
+        settings.antialiasingLevel = 8;        
 
         // window.setVerticalSyncEnabled = true;    
         window.setFramerateLimit(300);
@@ -190,7 +188,7 @@ struct Game
             auto timePoint1(chrono::high_resolution_clock::now());
             window.clear(Color::White); // "Clear" the window from the previous frame
 
-                                        // Game phases
+            // Game phases
             inputPhase();
             updatePhase();
             drawPhase();
